@@ -12,7 +12,6 @@ import Home from './screens/Home';
 
 const Stack =createNativeStackNavigator();
 
-
 const loadDatabase = async () => {
   const dbName ="mySQLiteDB.db";
   const dbAsset =require("./assets/mySQLiteDB.db");
@@ -29,8 +28,6 @@ const loadDatabase = async () => {
     await FileSystem.downloadAsync(dbUri,dbFilePath);
   }
 };
-
-
 
 export default function App() {
   
