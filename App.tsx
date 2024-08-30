@@ -8,6 +8,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
 import Home from './screens/Home';
 
+
+
 const Stack =createNativeStackNavigator();
 
 
@@ -18,7 +20,7 @@ const loadDatabase = async () => {
   const dbFilePath = `${FileSystem.documentDirectory}SQLite/${dbName}`;
 
   const fileInfo =  await FileSystem.getInfoAsync(dbFilePath);
-  
+  console.info(fileInfo)
   if (!fileInfo.exists) {
     await FileSystem.makeDirectoryAsync(
       `${FileSystem.documentDirectory}SQLite`,
@@ -26,11 +28,12 @@ const loadDatabase = async () => {
     );
     await FileSystem.downloadAsync(dbUri,dbFilePath);
   }
-}
+};
 
 
 
 export default function App() {
+  
 
   const [dbLoaded,setdbLoaded] = React.useState<boolean>(false);
 
@@ -40,25 +43,24 @@ export default function App() {
       .catch((e) => console.error(e));
   }, []);
 
-  if (!dbLoaded) return(
+  if (!dbLoaded) 
+    return(
     <View style={{flex:1}}>
       <ActivityIndicator size={"large"}/>
       <Text>Loading Database</Text>
     </View>
-  )
+  );
 
   return (
     <NavigationContainer>
       <React.Suspense
       fallback={
         <View style={{flex:1,backgroundColor:"red"}}>
-            <ActivityIndicator size={'large'}/>
+            <ActivityIndicator size={"large"}/>
             <Text>Loading DB</Text>
         </View>
       }>
-        <SQLiteProvider 
-        databaseName='mySQLiteDB.db'
-        useSuspense>
+        <SQLiteProvider databaseName="mySQLiteDB.db" useSuspense>
           <Stack.Navigator>
             <Stack.Screen name="Home" component={Home}
             options={{
