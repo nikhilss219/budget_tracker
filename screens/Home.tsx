@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, TextStyle, View } from 'react-native';
 import { Category, Transaction, TransactionsByMonth } from '../types';
 import { useSQLiteContext } from 'expo-sqlite/next';
 import TransactionList from '../components/TransactionsList';
@@ -36,7 +36,20 @@ export default function Home() {
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const endOfMonth = new Date(now.getFullYear(), now.getMonth()+1, 1);
             endOfMonth.setMilliseconds(endOfMonth.getMilliseconds()-1);
-
+            
+            const startOfMonthTimeStamp = Math.floor(startOfMonth.getTime()/1000);
+            const endOfMonthTimeStamp = Math.floor(endOfMonth.getTime()/1000);
+            
+            const transactionsByMonth = await db.getAllAsync<TransactionsByMonth>(      `
+                SELECT
+                  COALESCE(SUM(CASE WHEN type = 'Expense' THEN amount ELSE 0 END), 0) AS totalExpenses,
+                  COALESCE(SUM(CASE WHEN type = 'Income' THEN amount ELSE 0 END), 0) AS totalIncome
+                FROM Transactions
+                WHERE date >= ? AND date <= ?;
+              `, 
+              [startOfMonthTimeStamp,endOfMonthTimeStamp]
+            );
+            setTransactionsByMonth(transactionsByMonth[0]);
         }
         catch (error) {
             console.error("error fetching transaction", error)
@@ -54,7 +67,7 @@ export default function Home() {
         }}>
             <TransactionSummary
                 totalExpenses={transactionsByMonth.totalExpenses}
-                totalIncome={transactionsByMonth.totalIncome} />
+                totalIncome  ={transactionsByMonth.totalIncome} />
             <TransactionList
                 categories={categories}
                 transactions={transactions}
@@ -71,9 +84,68 @@ function TransactionSummary({ totalIncome, totalExpenses }: TransactionsByMonth)
             month: "long",
             year: "numeric"
         });
+
+    const getMoneyTextStyle = (value: number): TextStyle => ({
+        fontWeight: "bold",
+        color: value < 0 ? "#ff4500" : "#2e8b57", // Red for negative, custom green for positive
+        });
+    
+        // Helper function to format monetary values
+        const formatMoney = (value: number) => {
+        const absValue = Math.abs(value).toFixed(2);
+        return `${value < 0 ? "-" : ""}$${absValue}`;
+        };
     return (
-        <Card>
-            <Text>Summary for {readablePeriod}</Text>
-        </Card>
+        <>
+      <Card style={styles.container}>
+        <Text style={styles.periodTitle}>Summary for {readablePeriod}</Text>
+       
+        <Text style={styles.summaryText}>
+          Income:{" "}
+          <Text style={getMoneyTextStyle(totalIncome)}>
+            {formatMoney(totalIncome)}
+          </Text>
+        </Text>
+        <Text style={styles.summaryText}>
+          Total Expenses:{" "}
+          <Text style={getMoneyTextStyle(totalExpenses)}>
+            {formatMoney(totalExpenses)}
+          </Text>
+        </Text>
+        <Text style={styles.summaryText}>
+          Savings:{" "}
+          <Text style={getMoneyTextStyle(savings)}>{formatMoney(savings)}</Text>
+        </Text>
+      </Card>
+    </>
     );
 }
+// Function to determine the style based on the value (positive or negative)
+
+const styles = StyleSheet.create({
+    container: {
+      marginBottom: 16,
+      paddingBottom: 7,
+    },
+    blur: {
+      width: "100%",
+      height: 110,
+      position: "absolute",
+      bottom: 0,
+      borderTopWidth: 1,
+      borderTopColor: "#00000010",
+      padding: 16,
+    },
+    periodTitle: {
+      fontSize: 20,
+      fontWeight: "bold",
+      color: "#333",
+      marginBottom: 15,
+    },
+    summaryText: {
+      fontSize: 18,
+      color: "#333",
+      marginBottom: 10,
+    },
+    // Removed moneyText style since we're now generating it dynamically
+  });
